@@ -36,10 +36,10 @@ class ToyEnv:
             x = np.random.normal(mus[z], self.true_Sigma[z])
             return x, z
     
-    def _calculate_transition_prob(self, curr_state, action_taken, seed = 42):
-        np.random.seed(seed)
+    def _calculate_transition_prob(self, curr_state, action_taken):
         next_s = []
-        alphas = [10, 10, 10, 10, 10]
+        probs = np.array([1, 1, 1, 1, 1])
+        probs[curr_state] += 1
         if curr_state + action_taken >= self.nS:
              index = self.nS - 1
              next_index = self.nS - 1
@@ -49,9 +49,9 @@ class ToyEnv:
         else:
             index = curr_state + action_taken
             next_index = curr_state + action_taken + 1
-        alphas[index] += 10
-        alphas[next_index] += 5
-        probs = np.random.dirichlet(alphas)
+        probs[index] += 3
+        probs[next_index] += 2
+        probs = probs/np.sum(probs)
         for next_state in range(self.nS):
             next_s.append((probs[next_state], next_state))
         return next_s
