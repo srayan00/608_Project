@@ -32,7 +32,7 @@ class ToyEnv:
 
     def _get_reward(self, state, action):
             mus = self._compute_means(state, action)
-            z = np.random.choice(self.true_k, 1, p=self.true_pi)
+            z = np.random.choice(self.true_k, p=self.true_pi)
             x = np.random.normal(mus[z], self.true_Sigma[z])
             return x, z
     
@@ -56,10 +56,9 @@ class ToyEnv:
             next_s.append((probs[next_state], next_state))
         return next_s
     
-    def reset(self, seed = 0):
-        np.random.seed(seed)
-        state = np.random.choice(self.observation_space, p=self.initial_state_dist)
-        return state
+    def reset(self):
+        self.state = np.random.choice(self.observation_space, p=self.initial_state_dist)
+        return self.state
     
     def step(self, action):
         transitions = self.P[self.state][action]
