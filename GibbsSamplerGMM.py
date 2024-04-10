@@ -39,4 +39,19 @@ class GibbsSamplerGMM:
         counts = np.array([counter[k] for k in range(self.n_components)])
         return np.random.dirichlet(self.alpha[:K] + counts)
     
-    def sample_
+    def sample_mu(Z, X, k):
+        X_k = X[Z == k]
+        n_k = X_k.shape[0]
+        sample_mean = np.mean(X_k) if n_k > 0 else self.mu0
+        sample_var = 1/(n_k/self.currsigma[k] + 1/self.sigma0)
+        sample_mean = sample_var * (self.mu0/self.sigma0 + n_k * sample_mean/self.currsigma[k])
+        return np.random.normal(sample_mean, sample_var)
+    
+    def sample_sigma(Z, X, k):
+        X_k = X[Z == k]
+        n_k = X_k.shape[0]
+        shifted_X_k = X_k - self.currmu[k]
+        new_alpha = np.dot(shifted_X_k.T, shifted_X_k)/2 + self.alphaG
+        new_scale = self.betaG + n_k/2
+        return 1/np.random.gamma(new_alpha, 1/new_scale)
+    
