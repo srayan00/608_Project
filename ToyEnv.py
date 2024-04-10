@@ -5,11 +5,11 @@ class ToyEnv:
         # Define Action space and Observation space
         self.action_space = [0, 1, 2]
         self.nA = 3
-        self.observation_space = [0, 1, 2, 3, 4]
-        self.nS = 5
+        self.observation_space = [0, 1, 2, 3]
+        self.nS = 4
 
         # Define initial state distribution
-        self.initial_state_dist = np.array([0.5, 0.2, 0.1, 0.1, 0.1])
+        self.initial_state_dist = np.array([0.6, 0.2, 0.1, 0.1])
 
         # Define Transition Probability
         self.P = {}
@@ -31,14 +31,14 @@ class ToyEnv:
 
 
     def _get_reward(self, state, action):
-            mus = self._compute_means(state, action)
-            z = np.random.choice(self.true_k, p=self.true_pi)
-            x = np.random.normal(mus[z], self.true_Sigma[z])
-            return x, z
+        mus = self._compute_means(state, action)
+        z = np.random.choice(self.true_k, p=self.true_pi)
+        x = np.random.normal(mus[z], self.true_Sigma[z])
+        return x, z
     
     def _calculate_transition_prob(self, curr_state, action_taken):
         next_s = []
-        probs = np.array([1, 1, 1, 1, 1])
+        probs = np.ones(self.nS)
         probs[curr_state] += 1
         if curr_state + action_taken >= self.nS:
              index = self.nS - 1
