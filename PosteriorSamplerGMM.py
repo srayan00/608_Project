@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as stats
 import collections
+import torch
 
 class GibbsSamplerGMM:
     def __init__(n_samples, n_components):
@@ -81,6 +82,62 @@ class GibbsSamplerGMM:
             sample_assigments(X)
             update_history()
         return self.samples
+    
+class HamiltonianSamplerGMM:
+    def __init__(n_samples, n_leapfrog_steps, t_delta, eta):
+        self.n_samples = n_samples
+        self.n_leapfrog_steps = n_leapfrog_steps
+        self.t_delta = t_delta
+        self.eta = eta
+
+        self.n_components = n_components
+
+        # Initialize prior parameters
+        self.alpha = torch.ones(self.n_components)/self.n_components
+
+        # Normal on mu
+        self.mu0 = 0
+        self.sigma0 = 1
+
+        # Inverse gamma on sigma
+        self.alphaG = 1
+        self.betaG = 0.5 # scale paramterization
+
+        # Tracking parameters
+        self.samples = []
+
+        # mu, sigma, pi concatenated
+        self.currmu = None
+        self.currsigma = None
+        self.currpi = None
+        self.currloglik = None
+    
+    def sample_prior():
+        self.currmu = torch.normal(self.mu0, self.sigma0, self.n_components, requires_grad=True)
+        self.currsigma = 1/torch.gamma(self.alphaG, 1/self.betaG, self.n_components, requires_grad=True)
+        self.currpi = torch.dirichlet(self.alpha, requires_grad=True)
+
+    def normal_pdf(x, mu, sigma):
+        return 1/(torch.sqrt(2 * np.pi* sigma)) * torch.exp(-0.5 * ((x - mu))**2/sigma)
+    
+    def log_prob(X):
+        loglik = 0
+        for i in range(len(X)):
+            xi = X[i]
+            likelihood = 0
+            for k in range(self.n_components):
+                likelihood += self.currpi[k] * normal_pdf(xi, self.currmu[k], self.currsigma[k])
+            loglik += torch.log(likelihood)
+        return loglik
+    
+    def hamiltonian(X):
+        p_mu = torch.normal(0, 1, self.n_components)
+        p_sigma = torch.gamma(self.alphaG, 1/self.betaG, self.n_components)
+        p_pi = torch.dirichlet(self.alpha)
+        H = -log_likelihood(X) + 0.5 * torch.sum(p_mu**2) + 0.5 * torch.sum(p_sigma**2) + 0.5 * torch.sum(p_pi**2)
+        return H
+
+
     
 
     

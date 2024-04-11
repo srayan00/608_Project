@@ -37,7 +37,6 @@ class ToyEnv:
         return x, z
     
     def _calculate_transition_prob(self, curr_state, action_taken):
-        next_s = []
         probs = np.ones(self.nS)
         probs[curr_state] += 1
         if curr_state + action_taken >= self.nS:
@@ -52,9 +51,7 @@ class ToyEnv:
         probs[index] += 3
         probs[next_index] += 2
         probs = probs/np.sum(probs)
-        for next_state in range(self.nS):
-            next_s.append((probs[next_state], next_state))
-        return next_s
+        return probs
     
     def reset(self):
         self.state = np.random.choice(self.observation_space, p=self.initial_state_dist)
@@ -62,8 +59,7 @@ class ToyEnv:
     
     def step(self, action):
         transitions = self.P[self.state][action]
-        i = np.random.choice(self.observation_space, p=[t[0] for t in transitions])
-        _, next_state = transitions[i]
+        next_state = np.random.choice(self.observation_space, p=[t[0] for t in transitions])
         reward, _ = self._get_reward(next_state, action)
         self.s = next_state
         return next_state, reward
