@@ -6,11 +6,11 @@ import collections
 import torch
 
 class PosteriorSamplerGMM:
-    def __init__(n_samples, n_components):
+    def __init__(self, n_samples, n_components):
         self.n_samples = n_samples
         self.n_components = n_components
     
-    def fit(X):
+    def fit(self, X):
         pass
 
 class GibbsSamplerGMM(PosteriorSamplerGMM):
@@ -90,7 +90,7 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
         return self.samples
     
 class HamiltonianSamplerGMM:
-    def __init__(n_samples, n_leapfrog_steps, t_delta, eta):
+    def __init__(self, n_samples, n_leapfrog_steps, t_delta, eta):
         self.n_samples = n_samples
         self.n_leapfrog_steps = n_leapfrog_steps
         self.t_delta = t_delta
@@ -118,7 +118,7 @@ class HamiltonianSamplerGMM:
         self.currpi = None
         self.currloglik = None
     
-    def sample_prior():
+    def sample_prior(self):
         self.currmu = torch.normal(self.mu0, self.sigma0, self.n_components, requires_grad=True)
         self.currsigma = 1/torch.gamma(self.alphaG, 1/self.betaG, self.n_components, requires_grad=True)
         self.currpi = torch.dirichlet(self.alpha, requires_grad=True)
