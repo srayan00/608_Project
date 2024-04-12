@@ -1,16 +1,17 @@
 import numpy as np 
 import torch
 from ToyEnv import ToyEnv
+import PosteriorSamplerGMM
 
 
 class PSRL:
-    def __init__(sampler = None, h = 10, T = 10, env = ToyEnv()):
+    def __init__(self, sampler = None, H = 10, T = 10, env = ToyEnv()):
         self.post_sampler = sampler
-        self.h = h
+        self.H = H
         self.T = T
-        self.history = np.zeros((T*h, 4)) # (s, a, r, s')
+        self.history = np.zeros((T*H, 4)) # (s, a, r, s')
         self.env = env
-        self.policy = None
+        self.currpolicy = None
 
         # Priors for transition matrix
         self.P0 = np.ones((env.nS, env.nA, env.nS))/env.nS
@@ -23,7 +24,7 @@ class PSRL:
         self.betaG = np.ones((env.nS, env.nA))/2
 
 
-    def backward_induction(expected_means, transitions, H):
+    def backward_induction(self, expected_means, transitions, H):
         """
         Compute the optimal value function and policy using backward induction.
         """
@@ -39,18 +40,34 @@ class PSRL:
                     Q[s, a, h] = expected_means[s, a] + transitions[s][a].dot(V[:, h + 1])
             V[:, h] = np.max(Q[:, :, h], axis=1)
             policy[:, h] = np.argmax(Q[:, :, h], axis=1)
+        self.currpolicy = policy
         return V, Q, policy
+    
+    def policy_evaluation(self, t):
+        curr_state = self.env.reset()
+        policy_to_call = self.currpolicy[init_state]
+        history = np.zeros((self.H, 4))
+        for h in range(self.H):
+            action = policy_to_call[h]
+            next_state, reward = self.env.step(action)
+            history[h] = np.array([curr_state, action, reward, next_state])
+            curr_state = next_state
+        self.history[t*self.H:(t+1)*self.H] = history
 
-    def update_transition_dynamics():
+    
+
+    def update_transition_dynamics(self):
         for s in range(self.env.nS):
             for a in range(self.env.nA):
                 relevant_hist = self.history[self.history[:, 0] == s and self.history[:, 1] == a]
                 self.P0[s, a] = self.P0[s, a] + np.histogram(relevant_hist[:, 3], bins = np.arange(self.env.nS))[0]
     
-    def update_reward_posteriors():
+    def update_reward_posteriors(self):
         for s in range(self.env.nS):
             for a in range(self.env.nA):
-                relevant_hist = self.history[self.history[:, 0] == s and self.history[:, 1] == a]
+                relevant_hist = self.history[self.history[:, 0] == s and self.history[:, 1] == a, 2]
+                sampler = PosteriorSamplerGMM.GibbsSamplerGMM(n_samples = 100, n_components = self.env.true_k, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
+                samples_hist = sampler.fit(relevant_hist)
                 
     
 
