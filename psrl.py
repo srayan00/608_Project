@@ -54,7 +54,13 @@ class PSRL:
             curr_state = next_state
         self.history[t*self.H:(t+1)*self.H] = history
 
-    
+    def sample_transition_dynamics(self):
+        transitions = {}
+        for s in range(self.env.nS):
+            transitions[s] = {a : [] for a in range(self.env.nA)}
+            for a in self.action_space:
+                transitions[s][a] = np.random.dirichlet(self.P0[s, a])
+        return transitions
 
     def update_transition_dynamics(self):
         for s in range(self.env.nS):
@@ -62,12 +68,32 @@ class PSRL:
                 relevant_hist = self.history[self.history[:, 0] == s and self.history[:, 1] == a]
                 self.P0[s, a] = self.P0[s, a] + np.histogram(relevant_hist[:, 3], bins = np.arange(self.env.nS))[0]
     
-    def update_reward_posteriors(self):
+    def sample_reward_posteriors(self, num_samples, t):
+        reward_post_params = np.zeros((self.env.nS, self.env.nA, 4))
+        history = self.history[:t*self.H]
         for s in range(self.env.nS):
             for a in range(self.env.nA):
-                relevant_hist = self.history[self.history[:, 0] == s and self.history[:, 1] == a, 2]
-                sampler = PosteriorSamplerGMM.GibbsSamplerGMM(n_samples = 100, n_components = self.env.true_k, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
-                samples_hist = sampler.fit(relevant_hist)
+                if history.size == 0:
+                    relevant_hist = None
+                else:
+                    relevant_hist = self.history[self.history[:, 0] == s and self.history[:, 1] == a, 2]
+                sampler = PosteriorSamplerGMM.GibbsSamplerGMM(n_samples = num_samples, n_components = self.env.true_k, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
+                samples = sampler.fit(relevant_hist)
+                reward_post_params[s, a] = samples[np.random.choice(num_samples, size = 1)]
+        return reward_post_params
+    
+    def run(self):
+        for t in range(self.T):
+            self.policy_evaluation(t)
+            transitions = self.sample_transition_dynamics() # first step
+            self.update_transition_dynamics()
+            reward_samples = self.sample_reward_posteriors(100)
+            expected_rewards = np.zeros((self.env.nS, self.env.nA))
+            for s in range(self.env.nS):
+                for a in range(self.env.nA):
+                    expected_rewards[s, a] = reward_samples[s, a].dot(self.env.true_pi)
+            V, Q, policy = self.backward_induction(expected_rewards, transitions, self.H)
+        return V, Q, policy
                 
     
 

@@ -76,17 +76,22 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
         self.currZ = Z
 
     def update_history(self):
-        self.samples.append((self.currmu, self.currsigma, self.currpi, self.currZ))
+        self.samples.append((self.currmu, self.currsigma, self.currpi))
 
     def fit(self, X):
-        self.sample_prior()
-        self.sample_assignments(X)
-        for i in range(self.n_samples):
-            self.sample_mixing_probs(self.currZ)
-            self.sample_mu(self.currZ, X)
-            self.sample_sigma(self.currZ, X)
-            self.sample_assigments(X)
-            self.update_history()
+        if X is None:
+            for _ in range(self.n_samples):
+                self.sample_prior()
+                self.update_history()
+        else:
+            self.sample_prior()
+            self.sample_assignments(X)
+            for _ in range(self.n_samples):
+                self.sample_mixing_probs(self.currZ)
+                self.sample_mu(self.currZ, X)
+                self.sample_sigma(self.currZ, X)
+                self.sample_assigments(X)
+                self.update_history()
         return self.samples
     
 class HamiltonianSamplerGMM:
