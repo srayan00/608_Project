@@ -2,10 +2,11 @@ import numpy as np
 import torch
 from ToyEnv import ToyEnv
 import PosteriorSamplerGMM
+import collections
 
 
 class PSRL:
-    def __init__(self,  env = ToyEnv(), n_samples = 100, H = 10, T = 10): # Add a sampler argument
+    def __init__(self,  env = ToyEnv(), n_samples = 100, H = 10, T = 100): # Add a sampler argument
         self.n_samples = n_samples
         self.H = H
         self.T = T
@@ -45,7 +46,7 @@ class PSRL:
     
     def policy_evaluation(self, t):
         curr_state = self.env.reset()
-        policy_to_call = self.currpolicy[init_state]
+        policy_to_call = self.currpolicy[curr_state]
         history = np.zeros((self.H, 4))
         for h in range(self.H):
             action = policy_to_call[h]
@@ -58,41 +59,44 @@ class PSRL:
         transitions = {}
         for s in range(self.env.nS):
             transitions[s] = {a : [] for a in range(self.env.nA)}
-            for a in self.action_space:
+            for a in self.env.action_space:
                 transitions[s][a] = np.random.dirichlet(self.P0[s, a])
         return transitions
 
-    def update_transition_dynamics(self):
+    def update_transition_dynamics(self, t):
+        history = self.history[:t*self.H]
         for s in range(self.env.nS):
             for a in range(self.env.nA):
-                relevant_hist = self.history[self.history[:, 0] == s and self.history[:, 1] == a]
-                self.P0[s, a] = self.P0[s, a] + np.histogram(relevant_hist[:, 3], bins = np.arange(self.env.nS))[0]
+                relevant_hist = history[(history[:, 0] == s) & (history[:, 1] == a)]
+                counter = collections.Counter(relevant_hist[:, 3])
+                counts = np.array([counter[k] for k in range(self.env.nS)])
+                self.P0[s, a] = self.P0[s, a] + counts
     
     def sample_reward_posteriors(self, t):
-        reward_post_params = np.zeros((self.env.nS, self.env.nA, 4))
+        reward_post_params = np.zeros((self.env.nS, self.env.nA, 3, self.env.true_k))
         history = self.history[:t*self.H]
         for s in range(self.env.nS):
             for a in range(self.env.nA):
                 if history.size == 0:
                     relevant_hist = None
                 else:
-                    relevant_hist = self.history[self.history[:, 0] == s and self.history[:, 1] == a, 2]
-                sampler = PosteriorSamplerGMM.GibbsSamplerGMM(n_samples = self.num_samples, n_components = self.env.true_k, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
+                    relevant_hist = history[(history[:, 0] == s) & (history[:, 1] == a), 2]
+                sampler = PosteriorSamplerGMM.GibbsSamplerGMM(n_samples = self.n_samples, n_components = self.env.true_k, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
                 samples = sampler.fit(relevant_hist)
-                reward_post_params[s, a] = samples[np.random.choice(self.num_samples, size = 1)]
+                reward_post_params[s, a] = samples[np.random.choice(self.n_samples, size = 1)]
         return reward_post_params
     
     def run(self):
         for t in range(self.T):
             transitions = self.sample_transition_dynamics() # first step
-            reward_samples = self.sample_reward_posteriors()
+            reward_samples = self.sample_reward_posteriors(t)
             expected_rewards = np.zeros((self.env.nS, self.env.nA))
             for s in range(self.env.nS):
                 for a in range(self.env.nA):
-                    expected_rewards[s, a] = reward_samples[s, a, 0].dot(self.env.true_pi)
+                    expected_rewards[s, a] = reward_samples[s, a, 0].dot(reward_samples[s, a, 2])
             V, Q, policy = self.backward_induction(expected_rewards, transitions, self.H)
             self.policy_evaluation(t)
-            self.update_transition_dynamics()
+            self.update_transition_dynamics(t)
         return V, Q, policy
                 
     

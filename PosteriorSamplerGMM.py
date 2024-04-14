@@ -31,7 +31,7 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
         self.betaG = betaG # rate paramterization
 
         # Tracking parameters
-        self.samples = []
+        self.samples = np.zeros((n_samples, 3, n_components))
         self.currmu = None
         self.currsigma = None
         self.currpi = None
@@ -79,14 +79,14 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
             Z[i] = self.sample_assignment(X[i])
         self.currZ = Z
 
-    def update_history(self):
-        self.samples.append((self.currmu, self.currsigma, self.currpi))
+    def update_history(self, t):
+        self.samples[t] = np.array([self.currmu, self.currsigma, self.currpi])
 
     def fit(self, X):
         if X is None:
-            for _ in range(self.n_samples):
+            for t in range(self.n_samples):
                 self.sample_prior()
-                self.update_history()
+                self.update_history(t)
         else:
             self.sample_prior()
             self.sample_assignments(X)
@@ -95,7 +95,7 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
                 self.sample_mu(self.currZ, X)
                 self.sample_sigma(self.currZ, X)
                 self.sample_assignments(X)
-                self.update_history()
+                self.update_history(t)
         return self.samples
     
 class HamiltonianSamplerGMM:
