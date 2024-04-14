@@ -82,15 +82,17 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
     def update_history(self, t):
         self.samples[t] = np.array([self.currmu, self.currsigma, self.currpi])
 
-    def fit(self, X):
-        if X is None:
+    def fit(self, X, verbose = False):
+        if X is None or X.size == 0:
+            if verbose:
+                print("No data provided. Sampling from prior.")
             for t in range(self.n_samples):
                 self.sample_prior()
                 self.update_history(t)
         else:
             self.sample_prior()
             self.sample_assignments(X)
-            for _ in range(self.n_samples):
+            for t in range(self.n_samples):
                 self.sample_mixing_probs(self.currZ)
                 self.sample_mu(self.currZ, X)
                 self.sample_sigma(self.currZ, X)

@@ -6,7 +6,7 @@ import collections
 
 
 class PSRL:
-    def __init__(self,  env = ToyEnv(), n_samples = 100, H = 10, T = 100): # Add a sampler argument
+    def __init__(self,  env = ToyEnv(), n_samples = 1000, H = 100, T = 10): # Add a sampler argument
         self.n_samples = n_samples
         self.H = H
         self.T = T
@@ -18,11 +18,11 @@ class PSRL:
         self.P0 = np.ones((env.nS, env.nA, env.nS))/env.nS
 
         # Priors for reward distribution
-        self.mu0 = np.zeros((env.nS, env.nA, env.true_k))
-        self.sigma0 = np.ones((env.nS, env.nA, env.true_k))
-        self.alpha0 = np.ones((env.nS, env.nA, env.true_k))/env.true_k
-        self.alphaG = np.ones((env.nS, env.nA))
-        self.betaG = np.ones((env.nS, env.nA))/2
+        # self.mu0 = np.zeros((env.nS, env.nA, env.true_k))
+        # self.sigma0 = np.ones((env.nS, env.nA, env.true_k))
+        # self.alpha0 = np.ones((env.nS, env.nA, env.true_k))/env.true_k
+        # self.alphaG = np.ones((env.nS, env.nA))
+        # self.betaG = np.ones((env.nS, env.nA))/2
 
 
     def backward_induction(self, expected_means, transitions, H):
@@ -81,13 +81,14 @@ class PSRL:
                     relevant_hist = None
                 else:
                     relevant_hist = history[(history[:, 0] == s) & (history[:, 1] == a), 2]
-                sampler = PosteriorSamplerGMM.GibbsSamplerGMM(n_samples = self.n_samples, n_components = self.env.true_k, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
+                sampler = PosteriorSamplerGMM.GibbsSamplerGMM(n_samples = self.n_samples, n_components = self.env.true_k) #, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
                 samples = sampler.fit(relevant_hist)
                 reward_post_params[s, a] = samples[np.random.choice(self.n_samples, size = 1)]
         return reward_post_params
     
     def run(self):
         for t in range(self.T):
+            print(f"Iteration: {t}")
             transitions = self.sample_transition_dynamics() # first step
             reward_samples = self.sample_reward_posteriors(t)
             expected_rewards = np.zeros((self.env.nS, self.env.nA))
