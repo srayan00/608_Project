@@ -14,10 +14,13 @@ class PosteriorSamplerGMM:
         pass
 
 class GibbsSamplerGMM(PosteriorSamplerGMM):
-    def __init__(self, n_samples, n_components, alpha, mu0 = 0, sigma0 = 1, alphaG = 1, betaG = 0.5):
+    def __init__(self, n_samples, n_components, alpha = None, mu0 = 0, sigma0 = 1, alphaG = 1, betaG = 0.5):
         super().__init__(n_samples, n_components)
         # Initialize prior parameters
-        self.alpha = alpha
+        if alpha is None:
+            self.alpha = np.ones(n_components)/n_components
+        else:
+            self.alpha = alpha
 
         # Normal on mu
         self.mu0 = mu0
@@ -62,14 +65,14 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
             new_scale = self.betaG + n_k/2
             self.currsigma[k] = 1/np.random.gamma(new_alpha, 1/new_scale)
     
-    def sample_assigment(self, xi):
+    def sample_assignment(self, xi):
         probs = np.zeros(self.n_components)
         for k in range(self.n_components):
             probs[k] = self.currpi[k] * stats.norm.pdf(xi, loc=self.currmu[k], scale=self.currsigma[k])
         probs = probs/np.sum(probs)
         return np.random.choice(self.n_components, p=probs)
     
-    def sample_assigments(self, X):
+    def sample_assignments(self, X):
         Z = np.zeros(X.shape[0])
         for i in range(X.shape[0]):
             Z[i] = self.sample_assignment(X[i])
@@ -90,7 +93,7 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
                 self.sample_mixing_probs(self.currZ)
                 self.sample_mu(self.currZ, X)
                 self.sample_sigma(self.currZ, X)
-                self.sample_assigments(X)
+                self.sample_assignments(X)
                 self.update_history()
         return self.samples
     

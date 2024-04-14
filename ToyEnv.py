@@ -59,7 +59,7 @@ class ToyEnv:
     
     def step(self, action):
         transitions = self.P[self.state][action]
-        next_state = np.random.choice(self.observation_space, p=[t[0] for t in transitions])
+        next_state = np.random.choice(self.observation_space, p=[t for t in transitions])
         reward, _ = self._get_reward(next_state, action)
         self.s = next_state
         return next_state, reward
