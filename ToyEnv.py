@@ -1,4 +1,5 @@
 import numpy as np
+import itertools
 
 class ToyEnv:
     def __init__(self, nS = 4, nA = 3, truek = 3):
@@ -40,6 +41,17 @@ class ToyEnv:
     def _compute_means(self, state, action):
          mus = np.arange(0, 3*self.true_k, 3) + state + action
          return mus
+     
+    def _compute_expected_reward(self):
+        nS, nA = self.nS, self.nA
+        S, A = self.observation_space, self.action_space
+        
+        expected_rewards = (np.array([self._compute_means(s,a) 
+                                      for s,a in 
+                                      itertools.product(S, A)]) @ self.true_pi
+                            ).reshape(nS,-1)
+        
+        return expected_rewards
 
 
     def _get_reward(self, state, action):
@@ -75,8 +87,32 @@ class ToyEnv:
         reward, _ = self._get_reward(next_state, action)
         self.s = next_state
         return next_state, reward
+    
+    def solve_optimal_policy(self, H):
+        """Returns optimal policy and value functions for given environment using backwards induction 
 
-         
+        Args:
+            H (int): Horizon for simulation
+            
+        Returns:True optimal value function, q function, and policy
+        """
         
+        num_states, num_actions = self.nS, self.nA 
+        policy = np.zeros((num_states, H), dtype=int)
+        
+        expected_rewards = self._compute_expected_reward()
+        
+        Q = np.zeros((num_states, num_actions, H))
+        Q[:, :, H - 1] = expected_rewards
+        V = np.zeros((num_states, H))
+        V[:, H - 1] = np.max(Q[:, :, H - 1], axis=1)
+        for h in range(H - 2, -1, -2):
+            for s in range(num_states):
+                for a in range(num_actions):
+                    Q[s, a, h] = expected_rewards[s, a] + self.P[s][a].dot(V[:, h + 1])
+            V[:, h] = np.max(Q[:, :, h], axis=1)
+            policy[:, h] = np.argmax(Q[:, :, h], axis=1)
+        self.currpolicy = policy
+        return V, Q, policy
 
 
