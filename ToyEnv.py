@@ -21,7 +21,8 @@ class ToyEnv:
         # Define Reward distribution where the state and action dictate the mean of the distributions
         self.true_k = truek
         self.true_pi = self.__compute_pi()
-        self.true_Sigma = np.ones(truek)/10
+        self.true_Sigma = np.arange(self.true_k, 0, -1)/10
+        self.true_Sigma = np.ones(self.true_k)/10
     
     def __initialstate_dist(self):
         dist = np.ones(self.nS)
@@ -37,10 +38,8 @@ class ToyEnv:
 
 
     def _compute_means(self, state, action):
-         mu0 = 2*state - action
-         mu1 = state * action
-         mu2 = state + action
-         return np.array([mu0, mu1, mu2])
+         mus = np.arange(0, 3*self.true_k, 3) + state + action
+         return mus
 
 
     def _get_reward(self, state, action):

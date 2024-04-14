@@ -65,6 +65,7 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
             new_alpha = self.alphaG + n_k/2
             self.currsigma[k] = 1/np.random.gamma(new_alpha, 1/new_scale)
     
+    
     def sample_assignment(self, xi):
         probs = np.zeros(self.n_components)
         for k in range(self.n_components):
