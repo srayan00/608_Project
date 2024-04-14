@@ -14,7 +14,7 @@ class PosteriorSamplerGMM:
         pass
 
 class GibbsSamplerGMM(PosteriorSamplerGMM):
-    def __init__(self, n_samples, n_components, alpha = None, mu0 = 0, sigma0 = 1, alphaG = 1, betaG = 0.5):
+    def __init__(self, n_samples, n_components, alpha = None, mu0 = 0, sigma0 = 1, alphaG = 1, betaG = 2):
         super().__init__(n_samples, n_components)
         # Initialize prior parameters
         if alpha is None:
@@ -28,7 +28,7 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
 
         # Inverse gamma on sigma
         self.alphaG = alphaG
-        self.betaG = betaG # scale paramterization
+        self.betaG = betaG # rate paramterization
 
         # Tracking parameters
         self.samples = []
@@ -61,8 +61,8 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
             X_k = X[Z == k]
             n_k = X_k.shape[0]
             shifted_X_k = X_k - self.currmu[k]
-            new_alpha = np.dot(shifted_X_k.T, shifted_X_k)/2 + self.alphaG
-            new_scale = self.betaG + n_k/2
+            new_scale = np.dot(shifted_X_k.T, shifted_X_k)/2 + self.betaG
+            new_alpha = self.alphaG + n_k/2
             self.currsigma[k] = 1/np.random.gamma(new_alpha, 1/new_scale)
     
     def sample_assignment(self, xi):

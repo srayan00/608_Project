@@ -1,15 +1,15 @@
 import numpy as np
 
 class ToyEnv:
-    def __init__(self):
+    def __init__(self, nS = 4, nA = 3, truek = 3):
         # Define Action space and Observation space
-        self.action_space = [0, 1, 2]
-        self.nA = 3
-        self.observation_space = [0, 1, 2, 3]
-        self.nS = 4
+        self.nS = nS
+        self.nA = nA
+        self.action_space = np.arange(nA)
+        self.observation_space = np.arange(nS)
 
         # Define initial state distribution
-        self.initial_state_dist = np.array([0.6, 0.2, 0.1, 0.1])
+        self.initial_state_dist = self.__initialstate_dist()
 
         # Define Transition Probability
         self.P = {}
@@ -19,9 +19,22 @@ class ToyEnv:
                 self.P[s][a] = self._calculate_transition_prob(s, a)
 
         # Define Reward distribution where the state and action dictate the mean of the distributions
-        self.true_k = 3
-        self.true_pi = np.array([0.2, 0.2, 0.6])
-        self.true_Sigma = np.array([0.5, 0.3, 0.1])
+        self.true_k = truek
+        self.true_pi = self.__compute_pi()
+        self.true_Sigma = np.ones(truek)/10
+    
+    def __initialstate_dist(self):
+        dist = np.ones(self.nS)
+        dist[0] += 3
+        dist[1] += 1
+        dist = dist/np.sum(dist)
+        return dist
+    
+    def __compute_pi(self):
+        dist = np.ones(self.true_k)
+        dist[-1] += 3
+        return dist/np.sum(dist)
+
 
     def _compute_means(self, state, action):
          mu0 = 2*state - action
