@@ -108,7 +108,7 @@ class PSRL:
 if __name__ == "__main__":
     # Initialize parameters
     env = ToyEnv()
-    psrl = PSRL()
+    psrl_g = PSRL()
     init_state = env.reset()
     transitions = env.P
     expected_rewards = np.zeros((env.nS, env.nA))
@@ -117,4 +117,17 @@ if __name__ == "__main__":
             expected_rewards[s, a] = env._compute_means(s, a).dot(env.true_pi)
     
     # Compute the optimal value function and policy
-    V, Q, policy = psrl.backward_induction(expected_rewards, transitions, 10)
+    Vg, Qg, policy_g = psrl_g.backward_induction(expected_rewards, transitions, 10)
+    
+    print(policy_g)
+    
+    psrl_h = PSRL(sampler=HMCpymcGMM)
+    init_state = env.reset()
+    transitions = env.P
+    expected_rewards = np.zeros((env.nS, env.nA))
+    for s in range(env.nS):
+        for a in range(env.nA):
+            expected_rewards[s, a] = env._compute_means(s, a).dot(env.true_pi)
+            
+    Vh, Qh, policy_h = psrl_h.backward_induction(expected_rewards, transitions, 10)
+    print(policy_h)
