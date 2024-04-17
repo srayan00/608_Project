@@ -1,18 +1,20 @@
 import numpy as np 
 import torch
 from ToyEnv import ToyEnv
-import PosteriorSamplerGMM
+from PosteriorSamplerGMM import GibbsSamplerGMM, HMCpymcGMM
 import collections
 
 
+
 class PSRL:
-    def __init__(self,  env = ToyEnv(), n_samples = 1000, H = 100, T = 10): # Add a sampler argument
+    def __init__(self,  env = ToyEnv(), sampler = GibbsSamplerGMM, n_samples = 1000, H = 100, T = 10): # Add a sampler argument
         self.n_samples = n_samples
         self.H = H
         self.T = T
         self.history = np.zeros((T*H, 4)) # (s, a, r, s')
         self.env = env
         self.currpolicy = None
+        self.sampler = sampler
 
         # Priors for transition matrix
         self.P0 = np.ones((env.nS, env.nA, env.nS))/env.nS
@@ -81,7 +83,7 @@ class PSRL:
                     relevant_hist = None
                 else:
                     relevant_hist = history[(history[:, 0] == s) & (history[:, 1] == a), 2]
-                sampler = PosteriorSamplerGMM.GibbsSamplerGMM(n_samples = self.n_samples, n_components = self.env.true_k) #, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
+                sampler = self.sampler(n_samples = self.n_samples, n_components = self.env.true_k) #, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
                 samples = sampler.fit(relevant_hist)
                 reward_post_params[s, a] = samples[np.random.choice(self.n_samples, size = 1)]
         return reward_post_params

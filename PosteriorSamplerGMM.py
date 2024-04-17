@@ -4,6 +4,8 @@ import seaborn as sns
 import scipy.stats as stats
 import collections
 import torch
+import pymc as pm 
+
 
 class PosteriorSamplerGMM:
     def __init__(self, n_samples, n_components):
@@ -100,6 +102,82 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
                 self.update_history(t)
         return self.samples
     
+    
+class HMCpymcGMM(PosteriorSamplerGMM):
+    def __init__(self,n_samples, n_components, alpha=None,
+                 mu0=None, sigma0=None, alphaG=None, betaG=None,
+                 n_leapfrog_steps=None, t_delta=None, eta=None):
+        super().__init__(n_samples, n_components)
+        
+        self.n_leapfrog_steps = n_leapfrog_steps
+        self.t_delta = t_delta
+        self.eta = eta
+        
+        
+        # Initialize priors
+        # dirichlet for mixing probs
+        if alpha is None:
+            self.alpha = np.ones(n_components)/n_components
+        else:
+            self.alpha = alpha
+        
+        # gaussian for mu
+        if mu0 is None:
+            self.mu0 = 0
+        else: 
+            self.mu0 = mu0
+        
+        if sigma0 is None:
+            self.sigma0 = 1
+        else:
+            self.sigma0 = sigma0
+
+        
+        # Inverse gamma on sigma
+        if alphaG is None:
+            self.alphaG = 1
+        else:
+            self.alphaG = alphaG
+            
+        if betaG is None:
+            self.betaG = 0.5 #
+        else:
+            self.betaG = betaG
+            
+        # Instantiate sampler 
+        self.sampler = pm.Model(coords={"cluster" : range(n_components)}) 
+        # Create pymc model 
+        with self.sampler:
+             self.mu = pm.Normal("mu",
+                            mu = self.mu0, 
+                            sigma = self.sigma0,
+                            dims="cluster"
+                            )
+             self.sigma = pm.InverseGamma("sigma",
+                                     beta = self.betaG,
+                                     alpha = self.alphaG,
+                                     dims = "cluster")
+             self.weights = pm.Dirichlet("w", np.ones(n_components), dims="cluster")
+             
+             
+    def fit(self, X):
+        with self.sampler:
+            obs = pm.NormalMixture("x",  w=self.weights,
+                                   mu=self.mu, sigma=self.sigma, observed=X)
+            idata = pm.sample(self.n_samples, step = pm.HamiltonianMC())
+        
+        post = idata.posterior
+        # sample = post.stack(sample=("chain", "draw"))
+        
+        # Taking last sample from one of the chains (this is from last iteration)
+        sample = np.array([post["mu"][1,-1,:].values,
+                           post["sigma"][1,-1,:].values,
+                           post["w"][1,-1,:].values])
+        return sample
+            
+        
+        
+        
 class HamiltonianSamplerGMM:
     def __init__(self, n_samples, n_leapfrog_steps, t_delta, eta):
         self.n_samples = n_samples
@@ -156,5 +234,71 @@ class HamiltonianSamplerGMM:
 
 
     
-
+if __name__ == "__main__":
+    import gym
+    import numpy as np
+    import ToyEnv
+    import collections
+    import itertools
     
+    env = ToyEnv.ToyEnv()
+    
+    means = env._compute_means(0, 2)
+    sigma = env.true_Sigma
+    pis = env.true_pi
+    data = np.zeros((100,))
+    for i in range(100):
+        k = np.random.choice(len(pis), p=pis)
+        data[i] = np.random.normal(loc=means[k], scale=sigma[k])
+        
+    n_components = 3
+
+    # Initialize prior parameters
+    alpha = torch.ones(n_components)/n_components
+
+    # Normal on mu
+    mu0 = 0
+    sigma0 = 1
+
+    # Inverse gamma on sigma
+    alphaG = 1
+    betaG = 0.5 # scale paramterization
+    
+    # sampler = pm.Model(coords={"cluster" : range(n_components)}) 
+    #     # Create pymc model 
+    # with sampler:
+    #     mu = pm.Normal("mu",
+    #                     mu = mu0, 
+    #                     sigma = sigma0,
+    #                     dims="cluster"
+    #                     )
+    #     sigma = pm.InverseGamma("sigma",
+    #                                 beta = 
+    #                                 betaG,
+    #                                 alpha = alphaG,
+    #                                 dims = "cluster")
+        
+    #     weights = pm.Dirichlet("w", np.ones(n_components), dims="cluster")
+            
+    # with sampler:
+    #     idata = pm.sample(2000, step = pm.HamiltonianMC())      
+    
+    # post = idata.posterior 
+    # map_estimate = pm.find_MAP(model=sampler)
+
+    # with sampler:
+    #     pm.NormalMixture("x",  w=weights, mu=mu, sigma=sigma, observed=data)
+        
+    #     trace = pm.sample(2000, step = pm.HamiltonianMC(), return_inferencedata=False) 
+    
+    hmc = HMCpymcGMM(1000, 3)
+    
+    sampleHMC = hmc.fit(data)
+    print(sampleHMC)
+    
+    gibbs = GibbsSamplerGMM(1000, 3)
+    samples = gibbs.fit(data)
+    
+    print(type(samples))
+    print(type(samples.shape))
+    print(samples[np.random.choice(self.n_samples, size = 1)])
