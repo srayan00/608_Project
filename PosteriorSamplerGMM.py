@@ -8,16 +8,20 @@ import pymc as pm
 
 
 class PosteriorSamplerGMM:
-    def __init__(self, n_samples, n_components):
+    def __init__(self, n_samples, n_components, burn_in=500,):
         self.n_samples = n_samples
         self.n_components = n_components
-    
+        self.burn_in = burn_in
+        
     def fit(self, X):
         pass
 
 class GibbsSamplerGMM(PosteriorSamplerGMM):
-    def __init__(self, n_samples, n_components, alpha = None, mu0 = 0, sigma0 = 1, alphaG = 1, betaG = 2):
-        super().__init__(n_samples, n_components)
+    def __init__(self, n_samples, n_components, burn_in=500,
+                 alpha = None, mu0 = 0, sigma0 = 1, alphaG = 1, betaG = 2):
+        super().__init__(n_samples, n_components, burn_in)
+        
+        
         # Initialize prior parameters
         if alpha is None:
             self.alpha = np.ones(n_components)/n_components
@@ -100,20 +104,25 @@ class GibbsSamplerGMM(PosteriorSamplerGMM):
                 self.sample_sigma(self.currZ, X)
                 self.sample_assignments(X)
                 self.update_history(t)
-        return self.samples
+                 
+    def sample_posterior(self):
+        assert self.samples is not None
+        sample_id = np.random.choice(range(self.burn_in, self.n_samples), size=1)[0]
+        
+        return self.samples[sample_id]
+        
     
     
 class HMCpymcGMM(PosteriorSamplerGMM):
-    def __init__(self,n_samples, n_components, alpha=None,
+    def __init__(self,n_samples, n_components, alpha=None, burn_in=500,
                  mu0=None, sigma0=None, alphaG=None, betaG=None,
                  n_leapfrog_steps=None, t_delta=None, eta=None):
-        super().__init__(n_samples, n_components)
+        super().__init__(n_samples, n_components, burn_in)
         
         self.n_leapfrog_steps = n_leapfrog_steps
         self.t_delta = t_delta
         self.eta = eta
-        
-        
+                
         # Initialize priors
         # dirichlet for mixing probs
         if alpha is None:
@@ -157,6 +166,7 @@ class HMCpymcGMM(PosteriorSamplerGMM):
                                      beta = self.betaG,
                                      alpha = self.alphaG,
                                      dims = "cluster")
+             
              self.weights = pm.Dirichlet("w", np.ones(n_components), dims="cluster")
              
              
@@ -166,13 +176,15 @@ class HMCpymcGMM(PosteriorSamplerGMM):
                                    mu=self.mu, sigma=self.sigma, observed=X)
             idata = pm.sample(self.n_samples, step = pm.HamiltonianMC())
         
-        post = idata.posterior
-        # sample = post.stack(sample=("chain", "draw"))
+        self.post = idata.posterior
         
-        # Taking last sample from one of the chains (this is from last iteration)
-        sample = np.array([post["mu"][1,-1,:].values,
-                           post["sigma"][1,-1,:].values,
-                           post["w"][1,-1,:].values])
+    def sample_posterior(self):
+        # Taking sample from one of the chains 
+        chain_id = np.random.choice(self.post.chain, 1)[0]
+        sample_id = np.random.choice(range(self.burn_in, self.n_samples), size=1)[0]
+        sample = np.array([self.post["mu"].values[chain_id, sample_id, :],
+                           self.post["sigma"].values[chain_id, sample_id, :],
+                           self.post["w"].values[chain_id, sample_id, :]])
         return sample
             
         
@@ -293,12 +305,13 @@ if __name__ == "__main__":
     
     hmc = HMCpymcGMM(1000, 3)
     
-    sampleHMC = hmc.fit(data)
-    print(sampleHMC)
+    hmc.fit(data)
+    print(hmc.sample_posterior())
     
     gibbs = GibbsSamplerGMM(1000, 3)
-    samples = gibbs.fit(data)
+    gibbs.fit(data)
     
-    print(type(samples))
-    print(type(samples.shape))
-    print(samples[np.random.choice(self.n_samples, size = 1)])
+    print(gibbs.sample_posterior())
+    # print(type(samples))
+    # print(type(samples.shape))
+    # print(samples[np.random.choice(samples, size = 1)])
