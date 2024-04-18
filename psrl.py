@@ -84,8 +84,8 @@ class PSRL:
                 else:
                     relevant_hist = history[(history[:, 0] == s) & (history[:, 1] == a), 2]
                 sampler = self.sampler(n_samples = self.n_samples, n_components = self.env.true_k) #, alpha = self.alpha0[s, a], mu0 = self.mu0[s, a], sigma0 = self.sigma0[s, a], alphaG = self.alphaG[s, a], betaG = self.betaG[s, a])
-                samples = sampler.fit(relevant_hist)
-                reward_post_params[s, a] = samples[np.random.choice(self.n_samples, size = 1)]
+                sampler.fit(relevant_hist)
+                reward_post_params[s, a] = sampler.sample_posterior()
         return reward_post_params
     
     def run(self):
