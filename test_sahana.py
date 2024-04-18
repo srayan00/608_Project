@@ -22,6 +22,6 @@ if __name__ == "__main__":
         alg_h = psrl.PSRL(env=new_env, sampler=HMCpymcGMM)
         _, _, policy_h = alg_h.run()
         end_time_h = time.time()
-        np.save(f"results/states/{nS}_policy_g.npy", policy_h)
+        np.save(f"results/states/{nS}_policy_h.npy", policy_h)
         sample_dict["HMC"]["state"][nS] = end_time_h - st_time_h
 
