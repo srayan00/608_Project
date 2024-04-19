@@ -13,11 +13,17 @@ class PSRL:
         self.T = T
         self.history = np.zeros((T*H, 4)) # (s, a, r, s')
         self.env = env
-        self.currpolicy = Nonex
+        self.currpolicy = None
         self.sampler = sampler
-        self.episode_regret = []
+        self.history_regret = []
+        self.history_rewards = []
         self.episode_rewards = []
-
+        self.episode_regret = []
+        
+        
+        # Getting optimal policies for the true model
+        self.Vstr, self.Qstr, self.policy_str = self.env.solve_optimal_policy(self.H)
+        
         # Priors for transition matrix
         self.P0 = np.ones((env.nS, env.nA, env.nS))/env.nS
 
@@ -93,7 +99,7 @@ class PSRL:
     def run(self):
         # episode_rewards = []
         # episode_regret = []
-        Vstr, Qstr, policy_str = self.env.solve_optimal_policy(self.H)
+        
         
         for t in range(self.T):
             print(f"Iteration: {t}")
@@ -103,23 +109,28 @@ class PSRL:
             for s in range(self.env.nS):
                 for a in range(self.env.nA):
                     expected_rewards[s, a] = reward_samples[s, a, 0].dot(reward_samples[s, a, 2])
-            V, Q, policy = self.backward_induction(expected_rewards, transitions, self.H)
+            # V, Q, policy = self.backward_induction(expected_rewards, transitions, self.H)
+            V, Q, policy = self.backward_induction(expected_rewards, self.env.P, self.H)
+
+            regret = self.env.initial_state_dist.dot(self.Vstr[:, 0] - V[:, 0])
             
-            regret = self.env.initial_state_dist.dot(Vstr[:, 0] - V[:, 0])
             print(f"Episode {t} Regret: {regret}")
             self.episode_regret.append(regret)
             self.policy_evaluation(t)
             self.update_transition_dynamics(t)
+            
+        self.V = V
+        self.Q = Q
+        self.policy = policy
+        
         return V, Q, policy
-                
+                    
     
-
-
 if __name__ == "__main__":
     # Initialize parameters
     new_env = ToyEnv(3, 3, 2)
     init_state = new_env.reset()
-    alg = PSRL(env=new_env, sampler=HMCpymcGMM)
+    alg = PSRL(env=new_env, sampler=HMCpymcGMM, T=1)
     _, _, policy_g = alg.run()
     
     print(alg.episode_regret)

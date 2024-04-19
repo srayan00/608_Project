@@ -3,13 +3,31 @@ from ToyEnv import ToyEnv
 import os 
 import seaborn as sns 
 import matplotlib.pyplot as plt
+import argparse
 import re 
 
 
+parser = argparse.ArgumentParser(description='Run regret evaluation for the HMC and Gibbs samplers')
+
+parser.add_argument('--policy_path', type=str, default=None, help='Path where policies are stored.')
+parser.add_argument('--save_path', type=str, default=None, help='Path where policies are stored.')
+
+
 if __name__ == "__main__":
-    
+    args = parser.parse_args()
+    policy_path = args.policy_path
+    save_path = args.save_path
     # Load the data
-    files = os.listdir("results/states")
+    if policy_path is None:
+        files = os.listdir("results/states")
+    else:
+        files = os.listdir(policy_path)
+    
+    if save_path is None:
+        save_path = "results/regret"
+        
+    if not os.path.exists(save_path):
+        os.makedirs(save_path, exist_ok=True)
     
     file = "results/states/42_8_policy_h.npy"
     policy_h = np.load("results/states/42_8_policy_h.npy")
