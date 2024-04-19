@@ -21,7 +21,7 @@ if __name__ == "__main__":
         new_env = ToyEnv.ToyEnv(nS, 3, 2)
         init_state = new_env.reset()
         st_time_g = time.time()
-        alg_g = psrl.PSRL(env=new_env, sampler=GibbsSamplerGMM)
+        alg_g = psrl.PSRL(env=ToyEnv.ToyEnv(nS, 3, 2, np.random.default_rng(seed = seed)), sampler=GibbsSamplerGMM)
         _, _, policy_g = alg_g.run()
         end_time_g = time.time()
         np.save(f"results/states/{seed}_{nS}_policy_g.npy", policy_g)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
         init_state = new_env.reset()
         st_time_h = time.time()
-        alg_h = psrl.PSRL(env=new_env, sampler=HMCpymcGMM)
+        alg_h = psrl.PSRL(env=ToyEnv.ToyEnv(nS, 3, 2, np.random.default_rng(seed = seed)), sampler=HMCpymcGMM)
         _, _, policy_h = alg_h.run()
         end_time_h = time.time()
         np.save(f"results/states/{seed}_{nS}_policy_h.npy", policy_h)

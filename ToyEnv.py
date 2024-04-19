@@ -2,12 +2,16 @@ import numpy as np
 import itertools
 
 class ToyEnv:
-    def __init__(self, nS = 4, nA = 3, truek = 3):
+    def __init__(self, nS = 4, nA = 3, truek = 3, rng = None):
         # Define Action space and Observation space
         self.nS = nS
         self.nA = nA
         self.action_space = np.arange(nA)
         self.observation_space = np.arange(nS)
+        if rng is None:
+            self.rng = np.random
+        else:
+            self.rng = rng
 
         # Define initial state distribution
         self.initial_state_dist = self.__initialstate_dist()
@@ -56,8 +60,8 @@ class ToyEnv:
 
     def _get_reward(self, state, action):
         mus = self._compute_means(state, action)
-        z = np.random.choice(self.true_k, p=self.true_pi)
-        x = np.random.normal(mus[z], self.true_Sigma[z])
+        z = self.rng.choice(self.true_k, p=self.true_pi)
+        x = self.rng.normal(mus[z], self.true_Sigma[z])
         return x, z
     
     def _calculate_transition_prob(self, curr_state, action_taken):
@@ -78,12 +82,12 @@ class ToyEnv:
         return probs
     
     def reset(self):
-        self.state = np.random.choice(self.observation_space, p=self.initial_state_dist)
+        self.state = self.rng.choice(self.observation_space, p=self.initial_state_dist)
         return self.state
     
     def step(self, action):
         transitions = self.P[self.state][action]
-        next_state = np.random.choice(self.observation_space, p=[t for t in transitions])
+        next_state = self.rng.choice(self.observation_space, p=[t for t in transitions])
         reward, _ = self._get_reward(next_state, action)
         self.s = next_state
         return next_state, reward
