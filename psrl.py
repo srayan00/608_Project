@@ -13,8 +13,10 @@ class PSRL:
         self.T = T
         self.history = np.zeros((T*H, 4)) # (s, a, r, s')
         self.env = env
-        self.currpolicy = None
+        self.currpolicy = Nonex
         self.sampler = sampler
+        self.episode_regret = []
+        self.episode_rewards = []
 
         # Priors for transition matrix
         self.P0 = np.ones((env.nS, env.nA, env.nS))/env.nS
@@ -89,6 +91,10 @@ class PSRL:
         return reward_post_params
     
     def run(self):
+        # episode_rewards = []
+        # episode_regret = []
+        Vstr, Qstr, policy_str = self.env.solve_optimal_policy(self.H)
+        
         for t in range(self.T):
             print(f"Iteration: {t}")
             transitions = self.sample_transition_dynamics() # first step
@@ -98,6 +104,10 @@ class PSRL:
                 for a in range(self.env.nA):
                     expected_rewards[s, a] = reward_samples[s, a, 0].dot(reward_samples[s, a, 2])
             V, Q, policy = self.backward_induction(expected_rewards, transitions, self.H)
+            
+            regret = self.env.initial_state_dist.dot(Vstr[:, 0] - V[:, 0])
+            print(f"Episode {t} Regret: {regret}")
+            self.episode_regret.append(regret)
             self.policy_evaluation(t)
             self.update_transition_dynamics(t)
         return V, Q, policy
@@ -107,27 +117,35 @@ class PSRL:
 
 if __name__ == "__main__":
     # Initialize parameters
-    env = ToyEnv()
-    psrl_g = PSRL()
-    init_state = env.reset()
-    transitions = env.P
-    expected_rewards = np.zeros((env.nS, env.nA))
-    for s in range(env.nS):
-        for a in range(env.nA):
-            expected_rewards[s, a] = env._compute_means(s, a).dot(env.true_pi)
+    new_env = ToyEnv(3, 3, 2)
+    init_state = new_env.reset()
+    alg = PSRL(env=new_env, sampler=HMCpymcGMM)
+    _, _, policy_g = alg.run()
     
-    # Compute the optimal value function and policy
-    Vg, Qg, policy_g = psrl_g.backward_induction(expected_rewards, transitions, 10)
+    print(alg.episode_regret)
+        
+        
+    # env = ToyEnv()
+    # psrl_g = PSRL()
+    # init_state = env.reset()
+    # transitions = env.P
+    # expected_rewards = np.zeros((env.nS, env.nA))
+    # for s in range(env.nS):
+    #     for a in range(env.nA):
+    #         expected_rewards[s, a] = env._compute_means(s, a).dot(env.true_pi)
     
-    print(policy_g)
+    # # Compute the optimal value function and policy
+    # Vg, Qg, policy_g = psrl_g.backward_induction(expected_rewards, transitions, 10)
     
-    psrl_h = PSRL(sampler=HMCpymcGMM)
-    init_state = env.reset()
-    transitions = env.P
-    expected_rewards = np.zeros((env.nS, env.nA))
-    for s in range(env.nS):
-        for a in range(env.nA):
-            expected_rewards[s, a] = env._compute_means(s, a).dot(env.true_pi)
+    # print(policy_g)
+    
+    # psrl_h = PSRL(sampler=HMCpymcGMM)
+    # init_state = env.reset()
+    # transitions = env.P
+    # expected_rewards = np.zeros((env.nS, env.nA))
+    # for s in range(env.nS):
+    #     for a in range(env.nA):
+    #         expected_rewards[s, a] = env._compute_means(s, a).dot(env.true_pi)
             
-    Vh, Qh, policy_h = psrl_h.backward_induction(expected_rewards, transitions, 10)
-    print(policy_h)
+    # Vh, Qh, policy_h = psrl_h.backward_induction(expected_rewards, transitions, 10)
+    # print(policy_h)
