@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
         print(f"Running Gibbs Sampler for {k}")
         st_time_g = time.time()
-        alg_g = psrl.PSRL(env=ToyEnv.ToyEnv(4, 3, k, seed), sampler=GibbsSamplerGMM, T = 1)
+        alg_g = psrl.PSRL(env=ToyEnv.ToyEnv(4, 3, k, seed), sampler=GibbsSamplerGMM)
         _, _, policy_g = alg_g.run()
         end_time_g = time.time()
         with open(f"results/ncomps/{seed}_ncomp{k}_G.pkl", "wb") as g:
@@ -36,7 +36,7 @@ if __name__ == "__main__":
         init_state = new_env.reset()
         st_time_h = time.time()
         print(f"Running HMC Sampler for {k}")
-        alg_h = psrl.PSRL(env=ToyEnv.ToyEnv(4, 3, k, seed), sampler=HMCpymcGMM, T = 1)
+        alg_h = psrl.PSRL(env=ToyEnv.ToyEnv(4, 3, k, seed), sampler=HMCpymcGMM)
         _, _, policy_h = alg_h.run()
         end_time_h = time.time()
         with open(f"results/ncomps/{seed}_ncomp{k}_H.pkl", "wb") as h:
