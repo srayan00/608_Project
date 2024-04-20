@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --job-name=mcproj5
-#SBATCH --mail-user=srayan@umich.edu
+#SBATCH --job-name=mcproj3k
+#SBATCH --mail-user=srayan@umich.edu,marcbr@umich.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
  
 #SBATCH --account=stats_dept1
