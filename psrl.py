@@ -3,6 +3,7 @@ import torch
 from ToyEnv import ToyEnv
 from PosteriorSamplerGMM import GibbsSamplerGMM, HMCpymcGMM
 import collections
+import time
 
 
 
@@ -19,6 +20,8 @@ class PSRL:
         self.history_rewards = []
         self.episode_rewards = []
         self.episode_regret = []
+        self.start_time = time.time()
+        self.end_time = None
         
         
         # Getting optimal policies for the true model
@@ -99,7 +102,7 @@ class PSRL:
     def run(self):
         # episode_rewards = []
         # episode_regret = []
-        
+        self.start_time = time.time()
         
         for t in range(self.T):
             print(f"Iteration: {t}")
@@ -121,9 +124,21 @@ class PSRL:
             
         self.V = V
         self.Q = Q
-        self.policy = policy
+        self.currpolicy = policy
+        self.end_time = time.time()
         
         return V, Q, policy
+    
+    def to_dict(self):
+        d = {}
+        d["H"] = self.H
+        d["T"] = self.T
+        d["policy"] = self.currpolicy
+        d["V"] = self.V
+        d["Q"] = self.Q
+        d["episode_regret"] = self.episode_regret
+        d["time_taken"] = self.end_time - self.start_time
+        return d
                     
     
 if __name__ == "__main__":

@@ -2,16 +2,15 @@ import numpy as np
 import itertools
 
 class ToyEnv:
-    def __init__(self, nS = 4, nA = 3, truek = 3, rng = None):
+    def __init__(self, nS = 4, nA = 3, truek = 3, seed = None):
         # Define Action space and Observation space
         self.nS = nS
         self.nA = nA
+        self.seed = seed
+        self.rng = np.random.default_rng(seed = seed)
+
         self.action_space = np.arange(nA)
         self.observation_space = np.arange(nS)
-        if rng is None:
-            self.rng = np.random
-        else:
-            self.rng = rng
 
         # Define initial state distribution
         self.initial_state_dist = self.__initialstate_dist()
@@ -118,5 +117,16 @@ class ToyEnv:
             policy[:, h] = np.argmax(Q[:, :, h], axis=1)
         self.currpolicy = policy
         return V, Q, policy
+    
+    def to_dict(self):
+        d = {}
+        d['nS'] = self.nS
+        d['nA'] = self.nA
+        d['seed'] = self.seed
+        d['truek'] = self.true_k
+        d['initial_state_dist'] = self.initial_state_dist.tolist()
+        d['true_pi'] = self.true_pi.tolist()
+        d['true_Sigma'] = self.true_Sigma.tolist()
+        return d
 
 
