@@ -1,6 +1,6 @@
 __pycache__
 time_run.txt
 time.txt
-608proj.sbat
 .gitignore
 slurm*
+.nfs*
