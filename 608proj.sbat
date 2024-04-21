@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=mcproj3k
+#SBATCH --job-name=mcproj3h
 #SBATCH --mail-user=srayan@umich.edu,marcbr@umich.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
  
@@ -26,4 +26,4 @@ conda activate 608proj
 
 ####  Commands your job should run follow this line
 
-python3 test_ncomps.py --seed 44
+python3 test_horizon.py --seed 44
