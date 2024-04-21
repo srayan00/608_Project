@@ -15,8 +15,8 @@ parser.add_argument('--seed', type=int, default=43, help='The seed for the rando
 if __name__ == "__main__":
     args = parser.parse_args()
     seed = args.seed
-    list_of_ncomps = [2, 3, 4, 5]
-    sample_dict = sample_dict = {"Gibbs": {"ncomps": {2: 0, 3: 0, 4:0, 5:0}}, "HMC": {"ncomps": {2: 0, 3: 0, 4:0, 5:0}}}
+    list_of_ncomps = [6, 7, 8, 9]
+    sample_dict = sample_dict = {"Gibbs": {"ncomps": {6: 0, 7:0, 8:0, 9:0}}, "HMC": {"ncomps": {6:0, 7:0, 8:0, 9:0}}}
     for k in list_of_ncomps:
         print("Running for k: ", k)
         new_env = ToyEnv.ToyEnv(4, 3, k, seed)
@@ -42,5 +42,5 @@ if __name__ == "__main__":
         with open(f"results/ncomps/{seed}_ncomp{k}_H.pkl", "wb") as h:
             pickle.dump(alg_h.to_dict(), h)
         sample_dict["HMC"]["ncomps"][k] = end_time_h - st_time_h
-    with open(f"time_comps_{seed}.json", "w") as f:
+    with open(f"time_comps67_{seed}.json", "w") as f:
         json.dump(sample_dict, f)
