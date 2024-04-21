@@ -1,14 +1,14 @@
 import numpy as np 
 import torch
 from ToyEnv import ToyEnv
-from PosteriorSamplerGMM import GibbsSamplerGMM, HMCpymcGMM
+from PosteriorSamplerGMM import GibbsSamplerGMM, HMCpymcGMM, VIpymcGMM
 import collections
 import time
 
 
 
 class PSRL:
-    def __init__(self,  env = ToyEnv(), sampler = GibbsSamplerGMM, n_samples = 1000, H = 100, T = 10): # Add a sampler argument
+    def __init__(self,  env = ToyEnv(), sampler = GibbsSamplerGMM, n_samples = 1000, n_iterations=50000, H = 100, T = 10): # Add a sampler argument
         self.n_samples = n_samples
         self.H = H
         self.T = T
@@ -143,9 +143,17 @@ class PSRL:
     
 if __name__ == "__main__":
     # Initialize parameters
+    # new_env = ToyEnv(3, 3, 2)
+    # init_state = new_env.reset()
+    # alg = PSRL(env=new_env, sampler=HMCpymcGMM, T=1)
+    # _, _, policy_g = alg.run()
+    
+    # print(alg.episode_regret)
+    
+    
     new_env = ToyEnv(3, 3, 2)
     init_state = new_env.reset()
-    alg = PSRL(env=new_env, sampler=HMCpymcGMM, T=1)
+    alg = PSRL(env=new_env, sampler=VIpymcGMM, T=1)
     _, _, policy_g = alg.run()
     
     print(alg.episode_regret)
